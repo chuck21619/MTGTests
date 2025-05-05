@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   db:
     image: postgres:15
@@ -39,3 +37,13 @@ services:
       - backend
     environment:
       REACT_APP_API_URL: http://backend:8080
+
+  tests:
+    image: mcr.microsoft.com/playwright:v1.52.0-jammy
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - .:/tests
+    working_dir: /tests
+    command: ["npx", "playwright", "test"]
