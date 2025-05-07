@@ -4,6 +4,9 @@
     "scripts": {
       "test": "playwright test"
     },
+    "dependencies": {
+      "pg": "^8.11.3"
+    },
     "devDependencies": {
       "@playwright/test": "^1.43.1"
     }

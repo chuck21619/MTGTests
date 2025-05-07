@@ -39,6 +39,7 @@ services:
       - backend
     environment:
       - VITE_BACKEND_URL=http://backend:8080
+
   tests:
     build:
       context: .
@@ -48,3 +49,7 @@ services:
     environment:
       - BASE_URL=http://frontend:3000
     command: npm test
+    volumes:
+      - ./tests:/app/tests
+      - ./helpers:/app/helpers
+      - ./e2e-screenshots:/app/screenshots
