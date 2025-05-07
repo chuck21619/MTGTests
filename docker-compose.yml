@@ -1,49 +1,50 @@
 services:
-  db:
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_USER: e2etester
-      POSTGRES_PASSWORD: notastupidpassword
-      POSTGRES_DB: e2etestdatabase
-    ports:
-      - "5433:5432"
-    tmpfs:
-      - /var/lib/postgresql/data
-
   backend:
     build:
       context: ./backend
-    depends_on:
-      - db
-    environment:
-      DB_CONN_STR: postgres://e2etester:notastupidpassword@db:5432/e2etestdatabase?sslmode=disable
-    volumes:
-      - ./backend:/app
-    working_dir: /app
-    command: sh -c "go run scripts/wait-for-db.go && goose -dir migrations postgres \"$${DB_CONN_STR}\" up && go run main.go"
     ports:
       - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_CONN_STR=postgres://postgres:notastupidpassword@db:5432/my_local_db?sslmode=disable
+    command: sh -c "goose -dir migrations postgres \"$${DB_CONN_STR}\" up && go run main.go"
+
+  db:
+    image: postgres:15
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: notastupidpassword
+      POSTGRES_DB: my_local_db
+    tmpfs:
+      - /var/lib/postgresql/data
 
   frontend:
     build:
       context: ./frontend
     ports:
-      - "5173:5173"
+      - "3000:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
       - backend
     environment:
-      REACT_APP_API_URL: http://backend:8080
-
+      - VITE_BACKEND_URL=http://backend:8080
   tests:
-    image: mcr.microsoft.com/playwright:v1.52.0-jammy
+    build:
+      context: .
     depends_on:
-      - frontend
       - backend
-    volumes:
-      - .:/tests
-    working_dir: /tests
-    command: ["npx", "playwright", "test"]
+      - frontend
+    environment:
+      - BASE_URL=http://frontend:3000
+    command: npm test
